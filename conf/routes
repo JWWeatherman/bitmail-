@@ -1,21 +1,16 @@
-# Routes
-# This file defines all application routes (Higher priority routes first)
-# https://www.playframework.com/documentation/latest/ScalaRouting
-# ~~~~
-
-# Home page router
-GET        /                        controllers.HomeController.index
-
-# App Routes
-GET        /sender                  controllers.HomeController.sender
-GET        /recipient               controllers.HomeController.recipient
-GET        /main                    controllers.HomeController.main
+# Load index page
+GET         /                                                controllers.Assets.at(path="/public", file="index.html")
 
 # sender routes
-POST       /createWallet            controllers.SenderController.createWallet
+POST        /v1/createWallet                                 controllers.SenderController.createWallet
 
 # Map static resources from the /public folder to the /assets URL path
-GET        /assets/*file            controllers.Assets.versioned(path="/public", file: Asset)
+GET         /v1/assets/*file                                 controllers.Assets.versioned(path="/public", file: Asset)
 
-# JavaScript Routes
-GET        /javascriptRoutes        controllers.JsController.javascriptRoutes
+# Test email
+GET         /v1/testEmail/:too/:from/:message/:amount        controllers.HomeController.testEmail(too, from, message, amount)
+
+
+# !! This must be last - and may show an error until prod build !!
+# Map static resources from the /public folder to the file resource path
+GET         /*file                                           controllers.Assets.at(path="/public", file)

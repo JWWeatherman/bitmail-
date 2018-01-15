@@ -1,0 +1,13 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js --exec babel-node",
+    "start": "node server.js",
+    "lint": "eslint --ext **/.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

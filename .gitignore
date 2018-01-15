@@ -1,7 +1,7 @@
 # Play instance
 logs
 target
-/.idea
+.idea
 /.idea_modules
 /.classpath
 /.project
@@ -15,8 +15,11 @@ dist/
 npm-debug.log
 yarn-error.log
 
+ui/node_modules
+ui/npm-debug.log
+/public
+
 # Editor directories and files
-.idea
 *.suo
 *.ntvs*
 *.njsproj
