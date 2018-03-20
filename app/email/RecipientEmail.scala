@@ -1,10 +1,11 @@
 package email
 
+import com.google.inject.Inject
 import play.api.libs.mailer._
 
-class RecipientEmail(mailerClient: MailerClient) extends Email {
+class RecipientEmail @Inject()(emailHandler : Email) {
 
-  def send(templateName: String, recipientEmail: String, senderEmail: Option[String], publicKeyAddress: String, message: String, amount: String) = {
+  def send(templateName: String, recipientEmail: String, senderEmail: Option[String], publicKeyAddress: String, message: String, amount: String) : Boolean = {
     val sEmail = senderEmail match {
       case Some(email) => email
       case None => "Some nice fellow"
@@ -13,7 +14,7 @@ class RecipientEmail(mailerClient: MailerClient) extends Email {
       case "fundsReceiveRecipient" => fundsReceiveRecipient(recipientEmail, sEmail, publicKeyAddress, message, amount)
       case _ => throw new Exception("NOT A VALID TEMPLATE NAME")
     }
-    sendMailBatch(mailerClient, Seq(recipientEmail), sEmail, template)
+    emailHandler.sendMail(recipientEmail, sEmail, template)
   }
 
   def fundsReceiveRecipient(recipientEmail: String, senderEmail: String, publicKeyAddress: String, message: String, amount: String): String = {

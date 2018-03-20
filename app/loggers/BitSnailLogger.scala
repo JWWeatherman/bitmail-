@@ -8,6 +8,16 @@ import play.api.Logger
 
 @Singleton
 class BitSnailLogger {
+  def CouldNotUpdateBounce(wallet : SnailWallet) = logger.warn(s"Could not update the bounce state in a wallet. walletAddress = ${wallet.publicKeyAddress}, sender = ${wallet.transData.senderEmail}, receipient = ${wallet.transData.recipientEmail}")
+
+  def MailBounceForUnknownWallet(email : String) = logger.warn(s"Got a bounced email for a wallet we could not find. bounced=$email ")
+
+  def MailBouncedWithAnonymousSender(recipientEmail : String) = logger.info(s"Email bounced but the sender was anonymous. bounced=$recipientEmail")
+
+  def UnableToUpdateTransation(transactionId : String, error: String) = logger.error(s"Mongo could not update transaction. transactionId = $transactionId; mongoError = $error")
+
+  def MissingTransaction(transactionId : String) = logger.error(s"Transaction not found. transactionId = $transactionId")
+
   def KickingWalletWatcher() = logger.info("Kick stating the wallet watcher.")
 
   def LoadingAllWallets(previousWallets: LoadAllWallets) =

@@ -1,5 +1,4 @@
 package actors
-
 import java.io.File
 import java.net.InetAddress
 import java.nio.file.{Path, Paths}
@@ -13,7 +12,7 @@ import com.google.inject.Inject
 import com.google.inject.name.Named
 import forms.CreateWalletForm
 import loggers.BitSnailLogger
-import messages.{BitcoinTransactionReceived, InitiateBlockChain, LoadAllWallets}
+import messages.{BitcoinTransactionReceived, InitiateBlockChain, LoadAllWallets, NotificationEmailSent}
 import model.{TransactionStorage, WalletStorage}
 import model.models.{BitcoinTransaction, SnailWallet}
 import org.bitcoinj.core.listeners.PeerDataEventListener
@@ -32,7 +31,6 @@ import play.modules.reactivemongo._
 import scala.collection.JavaConversions._
 import scala.concurrent.{duration, ExecutionContext}
 import scala.concurrent.duration.FiniteDuration
-
 @Named("BitcoinClientActor")
 class BitcoinClientActor @Inject()(
     mongoApi: ReactiveMongoApi,
@@ -78,12 +76,18 @@ class BitcoinClientActor @Inject()(
               walletContext match {
                 case Some(t) =>
                   for {
-                    result <- transactions.insertTransaction(BitcoinTransaction(t.publicKey, transactionId))
+                    result <- transactions.insertTransaction(
+                      BitcoinTransaction(t.publicKey,
+                                         transactionId,
+                                         BitcoinTransaction.NotSent,
+                                         BitcoinTransaction.NotSent)
+                    )
                   } yield {
                     if (result.ok) {
                       bitcoinLogger.NewTransaction(t, transactionId)
                       notificationSendingActor ! BitcoinTransactionReceived(t.transData,
                                                                             t.publicKeyAddress,
+                                                                            transactionId,
                                                                             prevBalance,
                                                                             newBalance)
                     }
@@ -100,13 +104,15 @@ class BitcoinClientActor @Inject()(
   val blockChainDownloadListener = new PeerDataEventListener {
     override def getData(peer: Peer, m: GetDataMessage): util.List[Message] = null
 
-    override def onChainDownloadStarted(peer: Peer, blocksLeft: Int): Unit =
+    override def onChainDownloadStarted(peer: Peer, blocksLeft: Int): Unit = {
       bitcoinLogger.BlockChainDownloadStarted(blocksLeft)
+    }
 
     override def onPreMessageReceived(peer: Peer, m: Message): Message = m
 
-    override def onBlocksDownloaded(peer: Peer, block: Block, filteredBlock: FilteredBlock, blocksLeft: Int): Unit =
+    override def onBlocksDownloaded(peer: Peer, block: Block, filteredBlock: FilteredBlock, blocksLeft: Int): Unit = {
       if (blocksLeft == 0) bitcoinLogger.FinishedBlockDownload()
+    }
   }
 
   def addWallet(wallet: SnailWallet): Unit = {
@@ -157,7 +163,7 @@ class BitcoinClientActor @Inject()(
       } yield addWallet(w)
       peerGroup.startBlockChainDownload(blockChainDownloadListener)
 
-      system.scheduler.scheduleOnce(new FiniteDuration(20, duration.SECONDS)) {
+      system.scheduler.scheduleOnce(new FiniteDuration(5, duration.SECONDS)) {
         bitcoinLogger.KickingWalletWatcher()
         val w = CreateWalletForm.Data("gifted.primate@protonmail.com",
                                       Some("doohickeymastermind@protonmail.com"),
@@ -165,6 +171,30 @@ class BitcoinClientActor @Inject()(
                                       remainAnonymous = false)
         val wallet = walletMaker(w)
         self ! wallet
+      }
+
+    case emailSent: NotificationEmailSent =>
+      for {
+        t <- transactions.findTransactionByTransactionId(emailSent.transactionId)
+      } yield {
+        t match {
+          case Some(transaction) =>
+            for {
+              updateResult <- transactions.update(
+                transaction.copy(
+                  recipientState = if (emailSent.recipientSent) BitcoinTransaction.Sent else BitcoinTransaction.NotSent,
+                  senderState = if (emailSent.senderSent) BitcoinTransaction.Sent else BitcoinTransaction.NotSent
+                )
+              )
+            } yield {
+              if (!updateResult.ok)
+                bitcoinLogger.UnableToUpdateTransation(emailSent.transactionId,
+                                                       updateResult.errmsg.getOrElse("Missing error message"))
+            }
+
+          case _ =>
+            bitcoinLogger.MissingTransaction(emailSent.transactionId)
+        }
       }
   }
 

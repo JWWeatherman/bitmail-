@@ -2,16 +2,14 @@ package actors
 
 import java.io.File
 
+import actors.messages.{BitcoinTransactionReceived, NotificationEmailSent}
 import akka.actor.Actor
-import akka.actor.Actor.Receive
 import com.google.inject.Inject
 import com.google.inject.name.Named
-import fr.acinq.bitcoin.Crypto.PublicKey
-import messages.BitcoinTransactionReceived
-import play.api.libs.mailer.MailerClient
+import email.{RecipientEmail, SenderEmail}
 
 @Named("NotificationSendingActor")
-class NotificationSendingActor @Inject()(mailerClient: MailerClient) extends Actor {
+class NotificationSendingActor @Inject()(recipientEmail: RecipientEmail, senderEmail: SenderEmail) extends Actor {
   override def receive: Receive = {
     case bitcoinReceived: BitcoinTransactionReceived =>
       val file = new File(
@@ -19,13 +17,12 @@ class NotificationSendingActor @Inject()(mailerClient: MailerClient) extends Act
       )
       if (file.exists()) file.delete()
       file.createNewFile()
-      fundsReceiveRecipient(bitcoinReceived)
-      fundsReceivedSender(bitcoinReceived)
+      this.sender() ! NotificationEmailSent(bitcoinReceived.transactionId,
+                                            fundsReceiveRecipient(bitcoinReceived),
+                                            fundsReceivedSender(bitcoinReceived))
   }
 
-  private def fundsReceiveRecipient(bitcoinReceived: BitcoinTransactionReceived): Unit = {
-    import email._
-    val recipientEmail = new RecipientEmail(mailerClient)
+  private def fundsReceiveRecipient(bitcoinReceived: BitcoinTransactionReceived): Boolean = {
     recipientEmail.send(
       "fundsReceiveRecipient",
       bitcoinReceived.transData.recipientEmail,
@@ -36,10 +33,8 @@ class NotificationSendingActor @Inject()(mailerClient: MailerClient) extends Act
     )
   }
 
-  private def fundsReceivedSender(bitcoinReceived: BitcoinTransactionReceived): Unit = {
-    import email._
-    val recipientEmail = new SenderEmail(mailerClient)
-    recipientEmail.send(
+  private def fundsReceivedSender(bitcoinReceived: BitcoinTransactionReceived): Boolean = {
+    senderEmail.send(
       "fundsReceivedSender",
       bitcoinReceived.transData.recipientEmail,
       bitcoinReceived.transData.senderEmail,

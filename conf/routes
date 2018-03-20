@@ -4,6 +4,7 @@ GET         /                                                controllers.Assets.
 # sender routes
 POST        /v1/createWallet                                 controllers.SenderController.createWallet
 GET         /v1/readyWallet                                  controllers.SenderController.readyWallet
+GET         /v1/checkBounces                                 controllers.SenderController.checkBounces
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /v1/assets/*file                                 controllers.Assets.versioned(path="/public", file: Asset)
