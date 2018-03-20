@@ -7,8 +7,6 @@ import play.api.mvc.Controller
 import play.modules.reactivemongo.ReactiveMongoApi
 
 class RecipientController @Inject()(
-  val reactiveMongoApi : ReactiveMongoApi,
-  val walletStorage: WalletStorage
-) extends Controller  {
-
-}
+    val reactiveMongoApi: ReactiveMongoApi,
+    val walletStorage: WalletStorage
+) extends Controller {}

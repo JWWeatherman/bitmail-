@@ -18,14 +18,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SenderController @Inject()(
-                              val reactiveMongoApi: ReactiveMongoApi,
-                              walletMaker: WalletMaker,
-  walletStorage: WalletStorage,
-                              @Named("BitcoinClientActor") bitcoinClient : ActorRef,
-                              @Named("NotificationSendingActor") notificationSendingActor: ActorRef
-)
-                        extends Controller {
-  def createWallet() = Action.async(parse.json) { implicit request : Request[JsValue] =>
+    val reactiveMongoApi: ReactiveMongoApi,
+    walletMaker: WalletMaker,
+    walletStorage: WalletStorage,
+    @Named("BitcoinClientActor") bitcoinClient: ActorRef,
+    @Named("NotificationSendingActor") notificationSendingActor: ActorRef
+) extends Controller {
+  def createWallet() = Action.async(parse.json) { implicit request: Request[JsValue] =>
     CreateWalletForm.form.bindFromRequest.fold(
       _ => Future.successful(BadRequest),
       data => {
@@ -37,21 +36,26 @@ class SenderController @Inject()(
           if (result.ok) {
             wallet.transData.senderEmail match {
               case Some("gifted.primate@protonmail.com") => // For front end developer to bypass blockchain
-                notificationSendingActor ! BitcoinTransactionReceived(wallet.transData, wallet.publicKeyAddress, Coin.COIN, Coin.COIN)
+                notificationSendingActor ! BitcoinTransactionReceived(wallet.transData,
+                                                                      wallet.publicKeyAddress,
+                                                                      Coin.COIN,
+                                                                      Coin.COIN)
               case _ =>
                 bitcoinClient ! wallet
             }
             Ok(Json.toJson(response).toString)
-          }
-          else
+          } else
             InternalServerError(result.writeErrors.map(e => e.errmsg).mkString("\n"))
         }
       }
     )
   }
 
-  def readyWallet() = Action { implicit request : Request[AnyContent] =>
-    val w = CreateWalletForm.Data("gifted.primate@protonmail.com", Some("doohickeymastermind@protonmail.com"), "Here's your money!", remainAnonymous = false)
+  def readyWallet() = Action { implicit request: Request[AnyContent] =>
+    val w = CreateWalletForm.Data("gifted.primate@protonmail.com",
+                                  Some("doohickeymastermind@protonmail.com"),
+                                  "Here's your money!",
+                                  remainAnonymous = false)
     /*    for {
       wallet <- insertWallet(walletMaker(w))
     } yield {

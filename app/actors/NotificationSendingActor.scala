@@ -12,9 +12,11 @@ import play.api.libs.mailer.MailerClient
 
 @Named("NotificationSendingActor")
 class NotificationSendingActor @Inject()(mailerClient: MailerClient) extends Actor {
-   override def receive : Receive = {
-    case bitcoinReceived : BitcoinTransactionReceived =>
-      val file = new File(s"./coinsReceived-${bitcoinReceived.transData.recipientEmail}-${bitcoinReceived.newValue.value - bitcoinReceived.previousValue.value}.txt")
+  override def receive: Receive = {
+    case bitcoinReceived: BitcoinTransactionReceived =>
+      val file = new File(
+        s"./coinsReceived-${bitcoinReceived.transData.recipientEmail}-${bitcoinReceived.newValue.value - bitcoinReceived.previousValue.value}.txt"
+      )
       if (file.exists()) file.delete()
       file.createNewFile()
       fundsReceiveRecipient(bitcoinReceived)
@@ -24,12 +26,26 @@ class NotificationSendingActor @Inject()(mailerClient: MailerClient) extends Act
   private def fundsReceiveRecipient(bitcoinReceived: BitcoinTransactionReceived): Unit = {
     import email._
     val recipientEmail = new RecipientEmail(mailerClient)
-    recipientEmail.send("fundsReceiveRecipient", bitcoinReceived.transData.recipientEmail, bitcoinReceived.transData.senderEmail, bitcoinReceived.publicKeyAddress, bitcoinReceived.transData.senderMessage, bitcoinReceived.newValue.toFriendlyString)
+    recipientEmail.send(
+      "fundsReceiveRecipient",
+      bitcoinReceived.transData.recipientEmail,
+      bitcoinReceived.transData.senderEmail,
+      bitcoinReceived.publicKeyAddress,
+      bitcoinReceived.transData.senderMessage,
+      bitcoinReceived.newValue.toFriendlyString
+    )
   }
 
   private def fundsReceivedSender(bitcoinReceived: BitcoinTransactionReceived): Unit = {
     import email._
     val recipientEmail = new SenderEmail(mailerClient)
-    recipientEmail.send("fundsReceivedSender", bitcoinReceived.transData.recipientEmail, bitcoinReceived.transData.senderEmail, bitcoinReceived.publicKeyAddress, bitcoinReceived.transData.senderMessage, bitcoinReceived.newValue.toFriendlyString)
+    recipientEmail.send(
+      "fundsReceivedSender",
+      bitcoinReceived.transData.recipientEmail,
+      bitcoinReceived.transData.senderEmail,
+      bitcoinReceived.publicKeyAddress,
+      bitcoinReceived.transData.senderMessage,
+      bitcoinReceived.newValue.toFriendlyString
+    )
   }
 }

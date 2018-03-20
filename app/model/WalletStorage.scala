@@ -17,33 +17,36 @@ class WalletStorage @Inject()(mongoApi: ReactiveMongoApi)(implicit ec: Execution
   import SnailWallet._
 
   def insertWallet(wallet: SnailWallet) =
-  {
     for {
       db <- mongoApi.database
       result <- db.collection[BSONCollection](collectionLabel).insert(wallet)
     } yield result
-  }
 
-  def deleteWallet(publicKey: String) = {
+  def deleteWallet(publicKey: String) =
     for {
       db <- mongoApi.database
-      result <- db.collection[BSONCollection](collectionLabel).remove(BSONDocument(SnailWallet.publicKeyField -> publicKey))
+      result <- db
+        .collection[BSONCollection](collectionLabel)
+        .remove(BSONDocument(SnailWallet.publicKeyField -> publicKey))
     } yield result
-  }
 
-  def findWallet(publicKey: String) = {
+  def findWallet(publicKey: String) =
     for {
       db <- mongoApi.database
-      result <- db.collection[BSONCollection](collectionLabel).find(BSONDocument(SnailWallet.publicKeyField -> BSONDocument("$eq" -> publicKey))).one[Option[SnailWallet]]
+      result <- db
+        .collection[BSONCollection](collectionLabel)
+        .find(BSONDocument(SnailWallet.publicKeyField -> BSONDocument("$eq" -> publicKey)))
+        .one[Option[SnailWallet]]
     } yield result.flatten
-  }
 
-  def findAllWallets = {
+  def findAllWallets =
     for {
       db <- mongoApi.database
-      result <- db.collection[BSONCollection](collectionLabel).find(BSONDocument()).cursor[SnailWallet]().collect(-1, Cursor.ContOnError[List[SnailWallet]]((list, exeption) => {}))
+      result <- db
+        .collection[BSONCollection](collectionLabel)
+        .find(BSONDocument())
+        .cursor[SnailWallet]()
+        .collect(-1, Cursor.ContOnError[List[SnailWallet]]((list, exeption) => {}))
     } yield result
-  }
-
 
 }
